@@ -18,7 +18,7 @@ const config = {
     }),
     paths: {
       // Tell SvelteKit to use the repo name as the base path in production
-      base: process.argv.includes('dev') ? '' : '/dec-site'
+      base: process.argv.includes('dev') ? '' : '/dec_site'
     }
   }
 };
