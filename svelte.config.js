@@ -6,6 +6,9 @@ const config = {
   preprocess: vitePreprocess(),
 
   kit: {
+    prerender: {
+      handleHttpError: 'warn'
+    },
     adapter: adapter({
       pages: 'build',
       assets: 'build',
