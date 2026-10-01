@@ -34,7 +34,7 @@
             class="marker" 
             style="left: {stream.x}px; top: {stream.y}px;"
             title={formatStreamName(stream.name)}
-            href="/streams/{stream.usgs_id}"
+            href="{base}/streams/{stream.usgs_id}"
         >
             <span class="marker-dot"></span>
             <span class="marker-label">{formatStreamName(stream.name)}</span>
