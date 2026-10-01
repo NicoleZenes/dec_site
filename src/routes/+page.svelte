@@ -1,4 +1,5 @@
 <script>
+    import { base } from '$app/paths';
     import ny_map from '$lib/assets/ny_stream_gauges_map.png';
     import { latLonToPixel } from '$lib/utils/mapUtils';
     import { streams, formatStreamName } from '$lib/data/streams';
