@@ -66,7 +66,7 @@
             />
         </div>
         
-        <a href="/" class="back-button">← Back to Map</a>
+        <a href="{base}/" class="back-button">← Back to Map</a>
         <a href="{base}/streams/{stream.usgs_id}" class="back-button">← Back to Stream</a>
     </div>
 {:else}

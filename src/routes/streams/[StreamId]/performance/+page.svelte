@@ -36,7 +36,7 @@
         
         <div class="navigation">
             <a href="{base}/streams/{stream.usgs_id}" class="nav-button">← View Forecast</a>
-            <a href="/" class="nav-button">← Back to Map</a>
+            <a href="{base}/" class="nav-button">← Back to Map</a>
         </div>
     </div>
 {:else}

@@ -58,7 +58,7 @@
             />
         </div>
         
-        <a href="/" class="back-button">← Back to Map</a>
+        <a href="{base}/" class="back-button">← Back to Map</a>
     </div>
 {:else}
     <p>Stream not found</p>
