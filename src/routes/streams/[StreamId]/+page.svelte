@@ -3,6 +3,7 @@
 
     import { getStreamById, streams, getForecastFileName, getAvailableDates, formatStreamName } from '$lib/data/streams';
     import { page } from '$app/stores';
+    import { base } from '$app/paths';
 
     let streamId = $derived($page.params.StreamId);
     let stream = $derived(streamId ? getStreamById(streamId) : undefined);
@@ -30,9 +31,9 @@
 <!--This is called the template section of the Svelte component. It defines the HTML structure and binds data to it.-->
    <div class="forecast-page">
         <nav class="tabs">
-          <a class="tab" href="/streams/{stream.usgs_id}">Forecast</a>
-          <a class="tab" href="/streams/{stream.usgs_id}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="/streams/{stream.usgs_id}/performance">Performance</a>
+          <a class="tab" href="{base}/streams/{stream.usgs_id}">Forecast</a>
+          <a class="tab" href="{base}/streams/{stream.usgs_id}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="{base}/streams/{stream.usgs_id}/performance">Performance</a>
         </nav>
 
         <h1>{formatStreamName(stream.name)}</h1>
