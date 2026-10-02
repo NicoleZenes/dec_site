@@ -31,13 +31,13 @@
 <!--This is called the template section of the Svelte component. It defines the HTML structure and binds data to it.-->
    <div class="forecast-page">
         <nav class="tabs">
-          <a class="tab" href="{base}/streams/{stream.usgs_id}">Forecast</a>
-          <a class="tab" href="{base}/streams/{stream.usgs_id}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="{base}/streams/{stream.usgs_id}/performance">Performance</a>
+          <a class="tab" href="{base}/streams/{streamId}">Forecast</a>
+          <a class="tab" href="{base}/streams/{streamId}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="{base}/streams/{streamId}/performance">Performance</a>
         </nav>
 
         <h1>{formatStreamName(stream.name)}</h1>
-        <p>USGS ID: {stream.usgs_id}</p>
+        <p>USGS ID: {streamId}</p>
         
         <!-- Date selector dropdown -->
         <div class="date-selector">

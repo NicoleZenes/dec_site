@@ -17,9 +17,9 @@
 {#if stream}
     <div class="performance-page">
          <nav class="tabs">
-          <a class="tab" href="{base}/streams/{stream.usgs_id}">Forecast</a>
-          <a class="tab" href="{base}/streams/{stream.usgs_id}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="{base}/streams/{stream.usgs_id}/performance">Performance</a>
+          <a class="tab" href="{base}/streams/{streamId}">Forecast</a>
+          <a class="tab" href="{base}/streams/{streamId}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="{base}/streams/{streamId}/performance">Performance</a>
       </nav>
 
         <h1>{formatStreamName(stream.name)} - Past Performance</h1>
@@ -28,7 +28,7 @@
         <!-- Past performance image -->
         <div class="performance-image">
             <img 
-                src={`/images/performance/${stream.usgs_id}_past_performance.png`}
+                src={`{base}/images/performance/${stream.usgs_id}_past_performance.png`}
                 alt="Past performance for {formatStreamName(stream.name)}"
                 onerror={handleImageError}
             />

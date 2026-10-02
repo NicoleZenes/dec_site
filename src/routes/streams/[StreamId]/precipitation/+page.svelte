@@ -31,9 +31,9 @@
 {#if stream}
    <div class="precip-forecast-page">
      <nav class="tabs">
-          <a class="tab" href="{base}/streams/{stream.usgs_id}">Forecast</a>
-          <a class="tab" href="{base}/streams/{stream.usgs_id}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="{base}/streams/{stream.usgs_id}/performance">Performance</a>
+          <a class="tab" href="{base}/streams/{streamId}">Forecast</a>
+          <a class="tab" href="{base}/streams/{streamId}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="{base}/streams/{streamId}/performance">Performance</a>
       </nav>
       <h1>{formatStreamName(stream.name)} — Precipitation forecast comparison</h1>
 
@@ -67,7 +67,7 @@
         </div>
         
         <a href="{base}/" class="back-button">← Back to Map</a>
-        <a href="{base}/streams/{stream.usgs_id}" class="back-button">← Back to Stream</a>
+        <a href="{base}/streams/{streamId}" class="back-button">← Back to Stream</a>
     </div>
 {:else}
     <p>Stream not found</p>
