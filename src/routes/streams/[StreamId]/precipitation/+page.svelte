@@ -17,13 +17,13 @@
 
         // Construct the image path based on selected date
     let forecastImagePath = $derived(
-        stream ? `/images/forecasts/${stream.usgs_id}/${getPrecipFileName(stream.usgs_id, selectedPrecipOption, selectedDate)}` : ''
+        stream ? `${base}/images/forecasts/${stream.usgs_id}/${getPrecipFileName(stream.usgs_id, selectedPrecipOption, selectedDate)}` : ''
     );
 
     function handleImageError(event: Event) {
         console.error('Image failed to load', event);
         const img = event.target as HTMLImageElement;
-        img.src = '/images/forecasts/placeholder.png';
+        img.src = '{base}/images/forecasts/placeholder.png';
         img.alt = 'Forecast not available';
     }
 </script>

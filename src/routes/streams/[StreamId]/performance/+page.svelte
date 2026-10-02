@@ -9,7 +9,7 @@
     function handleImageError(event: Event) {
     console.error('Image failed to load', event);
     const img = event.target as HTMLImageElement;
-    img.src = '/images/forecasts/placeholder.png';
+    img.src = '${base}/images/forecasts/placeholder.png';
     img.alt = 'Forecast not available';
 }
 </script>
@@ -28,7 +28,7 @@
         <!-- Past performance image -->
         <div class="performance-image">
             <img 
-                src={`{base}/images/performance/${stream.usgs_id}_past_performance.png`}
+                src={`${base}/images/performance/${stream.usgs_id}_past_performance.png`}
                 alt="Past performance for {formatStreamName(stream.name)}"
                 onerror={handleImageError}
             />
