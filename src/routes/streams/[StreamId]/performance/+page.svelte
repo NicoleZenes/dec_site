@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getStreamById, formatStreamName } from '$lib/data/streams';
     import { page } from '$app/stores';
+    import { base } from '$app/paths'
 
     let streamId = $derived($page.params.StreamId);
     let stream = $derived(streamId ? getStreamById(streamId) : undefined);
@@ -16,9 +17,9 @@
 {#if stream}
     <div class="performance-page">
          <nav class="tabs">
-          <a class="tab" href="/streams/{stream.usgs_id}">Forecast</a>
-          <a class="tab" href="/streams/{stream.usgs_id}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="/streams/{stream.usgs_id}/performance">Performance</a>
+          <a class="tab" href="{base}/streams/{stream.usgs_id}">Forecast</a>
+          <a class="tab" href="{base}/streams/{stream.usgs_id}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="{base}/streams/{stream.usgs_id}/performance">Performance</a>
       </nav>
 
         <h1>{formatStreamName(stream.name)} - Past Performance</h1>
@@ -34,7 +35,7 @@
         </div>
         
         <div class="navigation">
-            <a href="/streams/{stream.usgs_id}" class="nav-button">← View Forecast</a>
+            <a href="{base}/streams/{stream.usgs_id}" class="nav-button">← View Forecast</a>
             <a href="/" class="nav-button">← Back to Map</a>
         </div>
     </div>
