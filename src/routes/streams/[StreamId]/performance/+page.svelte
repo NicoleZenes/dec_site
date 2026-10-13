@@ -1,15 +1,14 @@
 <script lang="ts">
     import { getStreamById, formatStreamName } from '$lib/data/streams';
-    import { page } from '$app/stores';
-    import { base } from '$app/paths'
+    import { page } from '$app/state';
 
-    let streamId = $derived($page.params.StreamId);
+    let streamId = $derived(page.params.StreamId);
     let stream = $derived(streamId ? getStreamById(streamId) : undefined);
 
     function handleImageError(event: Event) {
     console.error('Image failed to load', event);
     const img = event.target as HTMLImageElement;
-    img.src = '${base}/images/forecasts/placeholder.png';
+    img.src = '/images/forecasts/placeholder.png';
     img.alt = 'Forecast not available';
 }
 </script>
@@ -17,9 +16,9 @@
 {#if stream}
     <div class="performance-page">
          <nav class="tabs">
-          <a class="tab" href="{base}/streams/{streamId}">Forecast</a>
-          <a class="tab" href="{base}/streams/{streamId}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="{base}/streams/{streamId}/performance">Performance</a>
+          <a class="tab" href="/streams/{streamId}">Forecast</a>
+          <a class="tab" href="/streams/{streamId}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="/streams/{streamId}/performance">Performance</a>
       </nav>
 
         <h1>{formatStreamName(stream.name)} - Past Performance</h1>
@@ -28,15 +27,15 @@
         <!-- Past performance image -->
         <div class="performance-image">
             <img 
-                src={`${base}/images/performance/${stream.usgs_id}_past_performance.png`}
+                src={`/images/performance/${stream.usgs_id}_past_performance.png`}
                 alt="Past performance for {formatStreamName(stream.name)}"
                 onerror={handleImageError}
             />
         </div>
         
         <div class="navigation">
-            <a href="{base}/streams/{stream.usgs_id}" class="nav-button">← View Forecast</a>
-            <a href="{base}/" class="nav-button">← Back to Map</a>
+            <a href="/streams/{stream.usgs_id}" class="nav-button">← View Forecast</a>
+            <a href="/" class="nav-button">← Back to Map</a>
         </div>
     </div>
 {:else}
