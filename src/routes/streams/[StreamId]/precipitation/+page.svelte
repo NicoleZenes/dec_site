@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { page } from '$app/stores';
-    import { base } from '$app/paths'    
+    import { page } from '$app/state';
     import { getStreamById, formatStreamName, getAvailableDates, precipOptions, getPrecipFileName } from '$lib/data/streams';
 
-    let streamId = $derived($page.params.StreamId);
+    let streamId = $derived(page.params.StreamId);
     let stream = $derived(streamId ? getStreamById(streamId) : undefined);
 
     // Get available dates for the dropdown
@@ -17,13 +16,13 @@
 
         // Construct the image path based on selected date
     let forecastImagePath = $derived(
-        stream ? `${base}/images/forecasts/${stream.usgs_id}/${getPrecipFileName(stream.usgs_id, selectedPrecipOption, selectedDate)}` : ''
+        stream ? `/images/forecasts/${stream.usgs_id}/${getPrecipFileName(stream.usgs_id, selectedPrecipOption, selectedDate)}` : ''
     );
 
     function handleImageError(event: Event) {
         console.error('Image failed to load', event);
         const img = event.target as HTMLImageElement;
-        img.src = '{base}/images/forecasts/placeholder.png';
+        img.src = '/images/forecasts/placeholder.png';
         img.alt = 'Forecast not available';
     }
 </script>
@@ -31,9 +30,9 @@
 {#if stream}
    <div class="precip-forecast-page">
      <nav class="tabs">
-          <a class="tab" href="{base}/streams/{streamId}">Forecast</a>
-          <a class="tab" href="{base}/streams/{streamId}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="{base}/streams/{streamId}/performance">Performance</a>
+          <a class="tab" href="/streams/{streamId}">Forecast</a>
+          <a class="tab" href="/streams/{streamId}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="/streams/{streamId}/performance">Performance</a>
       </nav>
       <h1>{formatStreamName(stream.name)} — Precipitation forecast comparison</h1>
 
@@ -66,8 +65,8 @@
             />
         </div>
         
-        <a href="{base}/" class="back-button">← Back to Map</a>
-        <a href="{base}/streams/{streamId}" class="back-button">← Back to Stream</a>
+        <a href="/" class="back-button">← Back to Map</a>
+        <a href="/streams/{streamId}" class="back-button">← Back to Stream</a>
     </div>
 {:else}
     <p>Stream not found</p>
