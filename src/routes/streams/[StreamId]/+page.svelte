@@ -2,10 +2,9 @@
 // @ts-nocheck this defines logic and data for the Svelte component. It imports necessary functions and data, manages state, and handles events.
 
     import { getStreamById, streams, getForecastFileName, getAvailableDates, formatStreamName } from '$lib/data/streams';
-    import { page } from '$app/stores';
-    import { base } from '$app/paths';
+    import { page } from '$app/state';
 
-    let streamId = $derived($page.params.StreamId);
+    let streamId = $derived(page.params.StreamId);
     let stream = $derived(streamId ? getStreamById(streamId) : undefined);
 
     // Get available dates for the dropdown
@@ -16,13 +15,13 @@
     
     // Construct the image path based on selected date
     let forecastImagePath = $derived(
-        stream ? `${base}/images/forecasts/${stream.usgs_id}/${getForecastFileName(stream.usgs_id, selectedDate)}` : ''
+        stream ? `/images/forecasts/${stream.usgs_id}/${getForecastFileName(stream.usgs_id, selectedDate)}` : ''
     );
 
     function handleImageError(event) {
         console.error('Image failed to load', event);
         const img = event.target;
-        img.src = '{base}/images/forecasts/placeholder.png';
+        img.src = '/images/forecasts/placeholder.png';
         img.alt = 'Forecast not available';
     }
 </script>
@@ -31,9 +30,9 @@
 <!--This is called the template section of the Svelte component. It defines the HTML structure and binds data to it.-->
    <div class="forecast-page">
         <nav class="tabs">
-          <a class="tab" href="{base}/streams/{streamId}">Forecast</a>
-          <a class="tab" href="{base}/streams/{streamId}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="{base}/streams/{streamId}/performance">Performance</a>
+          <a class="tab" href="/streams/{streamId}">Forecast</a>
+          <a class="tab" href="/streams/{streamId}/precipitation">Precipitation Comparison</a>
+          <a class="tab" href="/streams/{streamId}/performance">Performance</a>
         </nav>
 
         <h1>{formatStreamName(stream.name)}</h1>
@@ -58,7 +57,7 @@
             />
         </div>
         
-        <a href="{base}/" class="back-button">← Back to Map</a>
+        <a href="/" class="back-button">← Back to Map</a>
     </div>
 {:else}
     <p>Stream not found</p>
