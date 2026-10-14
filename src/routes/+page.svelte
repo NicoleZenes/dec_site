@@ -1,5 +1,4 @@
 <script>
-    import { base } from '$app/paths';
     import ny_map from '$lib/assets/ny_stream_gauges_map.png';
     import { latLonToPixel } from '$lib/utils/mapUtils';
     import { streams, formatStreamName } from '$lib/data/streams';
@@ -35,7 +34,7 @@
             class="marker" 
             style="left: {stream.x}px; top: {stream.y}px;"
             title={formatStreamName(stream.name)}
-            href="{base}/streams/{stream.usgs_id}"
+            href="/streams/{stream.usgs_id}"
         >
             <span class="marker-dot"></span>
             <span class="marker-label">{formatStreamName(stream.name)}</span>
