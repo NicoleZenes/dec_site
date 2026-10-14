@@ -1,5 +1,5 @@
 {
-	"name": "r2-proxy",
+	"name": "dec-streamflow",
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_compat"],
