@@ -7,6 +7,8 @@ export interface Stream {
     lon: number;
     start_year: number;
     name: string;
+    type: 'stream' | 'groundwater';
+    storageId: string;
 }
 
 // Parse the CSV data into an array of Stream objects
@@ -21,6 +23,8 @@ export const streams: Stream[] = parsedData.data.map((row: any) => ({
     lon: parseFloat(row.lon),
     start_year: parseInt(row.start_year, 10),
     name: row.name,
+    type: row.usgs_id.startsWith('USGS-') ? 'groundwater' : 'stream',
+    storageId: row.usgs_id.replace('USGS-', ''),
     //imagepath: `static/images/forecasts/${getForecastFileName(row.usgs_id, 'YYYY-MM-DD')}`
 }));
 
@@ -71,3 +75,6 @@ export function getPrecipFileName(usgs_id: string, optionKey: string, date: stri
   // 04269000_forecast_figure_combination_2_weeks_2026-09-06_p10.png
   return `${usgs_id}_forecast_figure_combination_2_weeks_${date}_${optionKey}.png`;
 }
+
+export const streamSites = streams.filter(s => s.type === 'stream');
+export const wells = streams.filter(s => s.type === 'groundwater');
