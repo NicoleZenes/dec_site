@@ -27,68 +27,128 @@
         
         // Only import Leaflet in the browser
         L = await import('leaflet').then(module => module.default);
-
+        //const cartoKey = import.meta.env.VITE_CARTO_API_KEY;
+        const cartoKey = 'cb1_4kuv_1_2615f9dcebd41527138afc0f'
         // Initialize the map
         const map = L.map(mapContainer).setView([42.5, -75.0], 6); // Centered on NY
 
         // Add the base map tiles
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoKey}`, {
             attribution: '&copy; OpenStreetMap &copy; CARTO'
         }).addTo(map);
 
-        // Loop through your local streams data instead of calculating pixels
-        streamSites.forEach(stream => {
-            // Place marker using exact Lat/Lon (Leaflet handles the pixel math automatically)
-            const marker = L.circleMarker([stream.lat, stream.lon], {
-                radius: 7,
-                color: '#000',
-                weight: 1,
-                fillColor: getPercentileColor(stream.percentile),
-                fillOpacity: 0.9
-            }).addTo(map);
+        //define usgs colors for different percentiles
+        const usgsColors = [
+            '#8b0000', // 0: Record Low
+            '#ff0000', // 1: <10%
+            '#ffa500', // 2: 10-25%
+            '#00ff00', // 3: 25-75%
+            '#00ffff', // 4: 75-90%
+            '#0000ff', // 5: >90%
+            '#000000'  // 6: Record High
+        ];
 
-            // Replicate your marker-label functionality using a Leaflet Tooltip
-            marker.bindTooltip(formatStreamName(stream.name), {
-                permanent: false, 
-                direction: 'right',
-                className: 'custom-tooltip'
-            });
-
-            // Replicate your link behavior using SvelteKit's router
-            marker.on('click', () => {
-                goto(`/streams/${stream.usgs_id}`);
-            });
+        // Option for USDM colors
+        // The 11-tier USDM (U.S. Drought Monitor) Groundwater Palette
+        const usdmColors = [
+            '#730000', // 0: ≤2% (D4: Exceptional Drought - Dark Red)
+            '#e60000', // 1: 2-5% (D3: Extreme Drought - Red)
+            '#e69800', // 2: 5-10% (D2: Severe Drought - Orange)
+            '#fcd37f', // 3: 10-20% (D1: Moderate Drought - Tan/Peach)
+            '#ffff00', // 4: 20-30% (D0: Abnormally Dry - Yellow)
+            '#ffffff', // 5: 30-70% (Normal - White)
+            '#b4d79e', // 6: 70-80% (Slightly Wet - Light Green)
+            '#50a050', // 7: 80-90% (Moderately Wet - Medium Green)
+            '#00b0f0', // 8: 90-95% (Severely Wet - Light Blue)
+            '#0000ff', // 9: 95-98% (Extremely Wet - Dark Blue)
+            '#000080'  // 10: >98% (Exceptionally Wet - Navy)
+        ]; 
+        // Fetch the json for stream data
+        fetch('/api/nrcc')
+            .then(response => response.json())
+            .then(jsonData => {
+                // The JSON has a top-level "data" array based on what you found earlier
+                const apiStations = jsonData.data ?? [];
+            
                 // Loop through your local streams data instead of calculating pixels
-        });
+                streamSites.forEach(stream => {
+                    // Find the corresponding API data for this stream site
+                    const apiData = apiStations.find(s => s.siteid === String(stream.usgs_id));
+                    console.log('stream', stream.usgs_id, 'matched', apiData, 'usgs=', apiData?.usgs);
+                    
+                    const color =
+                        apiData && typeof apiData.usgs === 'number'
+                        ? usgsColors[apiData.usgs] ?? '#808080'
+                        : '#808080';
 
-        wells.forEach(well => {
-            // Place marker using exact Lat/Lon (Leaflet handles the pixel math automatically)
-            const marker = L.circleMarker([well.lat, well.lon], {
-                radius: 7,
-                color: '#000',
-                weight: 1,
-                fillColor: getPercentileColor(well.percentile),
-                fillOpacity: 0.9
-            }).addTo(map);
+                    // Place marker using exact Lat/Lon (Leaflet handles the pixel math automatically)
+                    const marker = L.circleMarker([stream.lat, stream.lon], {
+                        radius: 7,
+                        color: '#000',
+                        weight: 1,
+                        fillColor: color,
+                        fillOpacity: 0.9
+                    }).addTo(map);
 
-            // Replicate your marker-label functionality using a Leaflet Tooltip
-            marker.bindTooltip(formatStreamName(well.name), {
-                permanent: false, 
-                direction: 'right',
-                className: 'custom-tooltip'
-            });
+                    // Replicate your marker-label functionality using a Leaflet Tooltip
+                    marker.bindTooltip(formatStreamName(stream.name), {
+                        permanent: false, 
+                        direction: 'right',
+                        className: 'custom-tooltip'
+                    });
 
-            // Replicate your link behavior using SvelteKit's router
-            marker.on('click', () => {
-                goto(`/groundwater/${well.storageId}`);
-            });
-        });
+                    // Replicate your link behavior using SvelteKit's router
+                    marker.on('click', () => {
+                        goto(`/streams/${stream.usgs_id}`);
+                    });
+                        // Loop through your local streams data instead of calculating pixels
+                });
+            })
+            .catch(err => console.error("Failed to fetch NRCC JSON:", err));
+        fetch('/api/wells')
+            .then(response => response.json())
+            .then(jsonData => {
+                const wellStations = jsonData.data ?? [];
 
+                wells.forEach(well => {
+                    const wellData = wellStations.find(
+                        s => String(s.siteid) === String(well.storageId)
+                    );
+
+                    const color =
+                        apiData && typeof wellData.usgs === 'number'
+                        ? usgsColors[wellData.usgs] ?? '#808080'
+                        : '#808080';
+
+                    // Place marker using exact Lat/Lon (Leaflet handles the pixel math automatically)
+                    const marker = L.circleMarker([well.lat, well.lon], {
+                        radius: 7,
+                        color: '#000',
+                        weight: 1,
+                        fillColor: color,
+                        fillOpacity: 0.9
+                    }).addTo(map);
+
+                // Replicate your marker-label functionality using a Leaflet Tooltip
+                marker.bindTooltip(formatStreamName(well.name), {
+                    permanent: false, 
+                    direction: 'right',
+                    className: 'custom-tooltip'
+                });
+
+                // Replicate your link behavior using SvelteKit's router
+                marker.on('click', () => {
+                    goto(`/groundwater/${well.storageId}`);
+                });
+                });
+            })
+            .catch(err => console.error("Failed to fetch NRCC JSON:", err));
         // Cleanup on unmount
         return () => {
             map.remove();
         };
     });
+    
 </script>
 
 <svelte:head>
