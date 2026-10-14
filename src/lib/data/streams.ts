@@ -21,7 +21,7 @@ export const streams: Stream[] = parsedData.data.map((row: any) => ({
     lon: parseFloat(row.lon),
     start_year: parseInt(row.start_year, 10),
     name: row.name,
-    imagepath: `static/images/forecasts/${getForecastFileName(row.usgs_id, 'YYYY-MM-DD')}`
+    //imagepath: `static/images/forecasts/${getForecastFileName(row.usgs_id, 'YYYY-MM-DD')}`
 }));
 
 // Convert to stream forecast file name
