@@ -2,12 +2,25 @@
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation'; // SvelteKit's router
-    import { streams, formatStreamName } from '$lib/data/streams';
+    import { streamSites, wells, formatStreamName } from '$lib/data/streams';
 
     //import * as L from 'leaflet';
 
     let mapContainer;
     let L;
+
+    // Place this inside your <script> block, above onMount
+    function getPercentileColor(percentile) {
+        // Handle missing or invalid data
+        if (percentile === null || percentile === undefined) return '#808080'; // Gray
+
+        // USGS Percentile Classes
+        if (percentile <= 10) return '#b12222'; // Dark Red: Much below normal / Severe Drought
+        if (percentile <= 25) return '#ffa500'; // Orange: Below normal / Moderate Drought
+        if (percentile <= 75) return '#00ff00'; // Green: Normal
+        if (percentile <= 90) return '#40e0d0'; // Light Blue: Above normal
+        return '#0000ff';                       // Dark Blue: Much above normal (>90%)
+    }
 
     onMount(async () => {
         if (!browser) return;
@@ -24,13 +37,13 @@
         }).addTo(map);
 
         // Loop through your local streams data instead of calculating pixels
-        streams.forEach(stream => {
+        streamSites.forEach(stream => {
             // Place marker using exact Lat/Lon (Leaflet handles the pixel math automatically)
             const marker = L.circleMarker([stream.lat, stream.lon], {
-                radius: 6,
+                radius: 7,
                 color: '#000',
-                weight: 2,
-                fillColor: '#3388ff',
+                weight: 1,
+                fillColor: getPercentileColor(stream.percentile),
                 fillOpacity: 0.9
             }).addTo(map);
 
@@ -44,6 +57,30 @@
             // Replicate your link behavior using SvelteKit's router
             marker.on('click', () => {
                 goto(`/streams/${stream.usgs_id}`);
+            });
+                // Loop through your local streams data instead of calculating pixels
+        });
+
+        wells.forEach(well => {
+            // Place marker using exact Lat/Lon (Leaflet handles the pixel math automatically)
+            const marker = L.circleMarker([well.lat, well.lon], {
+                radius: 7,
+                color: '#000',
+                weight: 1,
+                fillColor: getPercentileColor(well.percentile),
+                fillOpacity: 0.9
+            }).addTo(map);
+
+            // Replicate your marker-label functionality using a Leaflet Tooltip
+            marker.bindTooltip(formatStreamName(well.name), {
+                permanent: false, 
+                direction: 'right',
+                className: 'custom-tooltip'
+            });
+
+            // Replicate your link behavior using SvelteKit's router
+            marker.on('click', () => {
+                goto(`/groundwater/${well.storageId}`);
             });
         });
 
