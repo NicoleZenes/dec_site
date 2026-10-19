@@ -33,7 +33,7 @@ export const streams: Stream[] = parsedData.data.map((row: any) => ({
 // Date will be passed in as a string in the format YYYY-MM-DD
 // wpc is our standard forecast for now
 export function getForecastFileName(usgs_id: string, date: string): string{
-    return `${usgs_id}_forecast_figure_combination_2_weeks_${date}_wpc.png`;
+    return `${usgs_id}_forecast_figure_combination_2_weeks_${date}_wpc_main.png`;
 }
 
 export function getStreamById(usgs_id: string): Stream | undefined {
@@ -73,7 +73,7 @@ export const precipOptions = [
 export function getPrecipFileName(usgs_id: string, optionKey: string, date: string): string {
   // returns filename only; caller composes path. adjust format to your real files
   // 04269000_forecast_figure_combination_2_weeks_2026-09-06_p10.png
-  return `${usgs_id}_forecast_figure_combination_2_weeks_${date}_${optionKey}.png`;
+  return `${usgs_id}_forecast_figure_combination_2_weeks_${date}_${optionKey}_main.png`;
 }
 
 export const streamSites = streams.filter(s => s.type === 'stream');

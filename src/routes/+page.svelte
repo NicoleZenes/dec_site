@@ -9,18 +9,38 @@
     let mapContainer;
     let L;
 
-    // Place this inside your <script> block, above onMount
-    function getPercentileColor(percentile) {
-        // Handle missing or invalid data
-        if (percentile === null || percentile === undefined) return '#808080'; // Gray
+    // // Place this inside your <script> block, above onMount
+    // function getPercentileColor(percentile) {
+    //     // Handle missing or invalid data
+    //     if (percentile === null || percentile === undefined) return '#808080'; // Gray
 
-        // USGS Percentile Classes
-        if (percentile <= 10) return '#b12222'; // Dark Red: Much below normal / Severe Drought
-        if (percentile <= 25) return '#ffa500'; // Orange: Below normal / Moderate Drought
-        if (percentile <= 75) return '#00ff00'; // Green: Normal
-        if (percentile <= 90) return '#40e0d0'; // Light Blue: Above normal
-        return '#0000ff';                       // Dark Blue: Much above normal (>90%)
-    }
+    //     // USGS Percentile Classes
+    //     if (percentile <= 10) return '#b12222'; // Dark Red: Much below normal / Severe Drought
+    //     if (percentile <= 25) return '#ffa500'; // Orange: Below normal / Moderate Drought
+    //     if (percentile <= 75) return '#00ff00'; // Green: Normal
+    //     if (percentile <= 90) return '#40e0d0'; // Light Blue: Above normal
+    //     return '#0000ff';                       // Dark Blue: Much above normal (>90%)
+    // }
+
+    function makeTriangleIcon(color) {
+        return L.divIcon({
+            className: 'triangle-marker',
+            html: `
+            <svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+                <path
+                d="M11 2 L19 18 L3 18 Z"
+                fill="${color}"
+                stroke="#000000"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+                />
+            </svg>
+            `,
+            iconSize: [20, 20],
+            iconAnchor: [10, 18],
+            popupAnchor: [0, -18]
+        });
+        }
 
     onMount(async () => {
         if (!browser) return;
@@ -37,6 +57,37 @@
             attribution: '&copy; OpenStreetMap &copy; CARTO'
         }).addTo(map);
 
+        // Get the county boundaries (GeoJSON) 
+        fetch('/geojson/Northeast_County_Boundaries.geojson')
+                .then(response => response.json())
+                .then(geoData => {
+                    // Add the state boundaries to the map
+                    L.geoJSON(geoData, {
+                        style: {
+                            color: '#D3D3D3',
+                            weight: 1,
+                            fillOpacity: 0,
+                            interactive: false
+                        }
+                    }).addTo(map);
+                });
+
+        // get and filter stae boundaries for NY 
+        fetch('/geojson/us-states.geojson')
+            .then(response => response.json())
+            .then(stateData => {
+                const nyState = stateData.features.find(f => f.properties.name === 'New York');
+                if (nyState) {
+                    L.geoJSON(nyState, {
+                        style: {
+                            color: '#000000',
+                            weight: 2,
+                            fillOpacity: 0,
+                            interactive: false
+                        }
+                    }).addTo(map);
+                }
+            });
         //define usgs colors for different percentiles
         const usgsColors = [
             '#8b0000', // 0: Record Low
@@ -105,6 +156,8 @@
                 });
             })
             .catch(err => console.error("Failed to fetch NRCC JSON:", err));
+
+        // Fetch the wells data
         fetch('/api/wells')
             .then(response => response.json())
             .then(jsonData => {
@@ -114,19 +167,16 @@
                     const wellData = wellStations.find(
                         s => String(s.siteid) === String(well.storageId)
                     );
+                    console.log('well', well.storageId, 'matched', wellData, 'usgs=', wellData?.usgs);
 
                     const color =
-                        apiData && typeof wellData.usgs === 'number'
+                        wellData && typeof wellData.usgs === 'number'
                         ? usgsColors[wellData.usgs] ?? '#808080'
                         : '#808080';
 
                     // Place marker using exact Lat/Lon (Leaflet handles the pixel math automatically)
-                    const marker = L.circleMarker([well.lat, well.lon], {
-                        radius: 7,
-                        color: '#000',
-                        weight: 1,
-                        fillColor: color,
-                        fillOpacity: 0.9
+                    const marker = L.marker([well.lat, well.lon], {
+                        icon: makeTriangleIcon(color)
                     }).addTo(map);
 
                 // Replicate your marker-label functionality using a Leaflet Tooltip
@@ -142,7 +192,64 @@
                 });
                 });
             })
-            .catch(err => console.error("Failed to fetch NRCC JSON:", err));
+            .catch(err => console.error("Failed to fetch wells JSON:", err));
+        
+        // Add symbol legend for the map
+        const symbolLegend = L.control({ position: 'bottomright' });
+
+            symbolLegend.onAdd = function () {
+            const div = L.DomUtil.create('div', 'symbol-legend');
+
+            div.innerHTML = `
+                <div style="margin-bottom:8px; font-weight:bold;">Sites</div>
+                <div style="display:flex; align-items:center; margin-bottom:6px;">
+                <svg width="16" height="16" viewBox="0 0 16 16">
+                    <circle cx="8" cy="8" r="6" fill="#000000" stroke="#000" stroke-width="1.2"/>
+                </svg>
+                <span style="margin-left:8px;">7-day Streamflow</span>
+                </div>
+                <div style="display:flex; align-items:center;">
+                <svg width="16" height="16" viewBox="0 0 16 16">
+                    <path d="M8 1 L15 14 L1 14 Z" fill="#000000" stroke="#000" stroke-width="1.2" />
+                </svg>
+                <span style="margin-left:8px;">Groundwater Status</span>
+                </div>
+            `;
+
+            return div;
+            };
+
+        symbolLegend.addTo(map);
+        
+        // Add color legend for the map
+        const legend = L.control({ position: 'bottomright' });
+
+        legend.onAdd = function () {
+            const div = L.DomUtil.create('div', 'info legend');
+            const labels = ['≤10% (Much below normal)', '11-25% (Below normal)', '26-75% (Normal)', '76-90% (Above normal)', '>90% (Much above normal)'];
+            const colors = ['#b12222', '#ffa500', '#00ff00', '#40e0d0', '#0000ff'];
+
+            div.innerHTML = '<h4 style="margin: 0 0 8px 0;">Drought Percentile</h4>';
+            
+            for (let i = 0; i < labels.length; i++) {
+                //div.innerHTML += `<i style="background:${colors[i]}"></i> ${labels[i]}<br>`;
+                div.innerHTML += `
+                      <div style="display:flex; align-items:center; margin-bottom:4px;">
+                        <span style="display:inline-block; width:14px; height:14px; background:${colors[i]}; border:1px solid #333; border-radius:50%; margin-right:8px;"></span>
+                        <span>${labels[i]}</span>
+                    </div>
+                    `;
+            }
+                div.innerHTML += `
+                    <div style="display:flex; align-items:center;">
+                    <span style="display:inline-block; width:14px; height:14px; background:#808080; border:1px solid #333; border-radius:50%; margin-right:8px;"></span>
+                    <span>No Data</span>
+                    </div>
+                `;            
+            return div;
+        };
+
+        legend.addTo(map);
         // Cleanup on unmount
         return () => {
             map.remove();
@@ -155,7 +262,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </svelte:head>
 
-<h1>Welcome to the streamflow forecast website. Please select a stream site from the map below.</h1>
+<h1>USGS Streamflow and Groundwater Status Map. Please select a site below to see the USGS and NRCC forecasts.</h1>
 
 <div bind:this={mapContainer} class="map-container"></div>
 
@@ -163,7 +270,7 @@
     .map-container {
         width: 80vw;
         height: 70vh; /* Replaces your image aspect ratio */
-        border: 2px solid #f80202; /* Kept your visual debugging border */
+        /*border: 2px solid #f80202; /* Kept your visual debugging border */
         border-radius: 8px;
         margin: 0 auto;
         z-index: 1; /* Ensures Leaflet controls don't overlap headers */
@@ -178,5 +285,27 @@
         font-weight: bold;
         border: 1px solid #333;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    :global(.legend) {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 8px 10px;
+        border-radius: 6px;
+        box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        color: #333;
+        line-height: 1.4;
+    }
+    :global(.triangle-marker) {
+        background: transparent;
+        border: none;
+    }
+    :global(.symbol-legend) {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 8px 10px;
+        border-radius: 6px;
+        box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        color: #333;
+        line-height: 1.4;
+        margin-bottom: 10px;
     }
 </style>

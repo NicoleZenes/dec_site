@@ -1,7 +1,7 @@
 <script>
 // @ts-nocheck this defines logic and data for the Svelte component. It imports necessary functions and data, manages state, and handles events.
 
-    import { getStreamById, wells, getForecastFileName, getAvailableDates, formatStreamName } from '$lib/data/streams';
+    import { wells, getAvailableDates, formatStreamName } from '$lib/data/streams';
     import { page } from '$app/state';
 
     let groundId = $derived(page.params.GroundId);
@@ -15,7 +15,9 @@
     
     // Construct the image path based on selected date
     let forecastImagePath = $derived(
-        groundwater ? `/images/forecasts/${groundwater.storageId}/${getForecastFileName(groundwater.storageId, selectedDate)}` : ''
+        groundwater
+            ? `/images/forecasts/${groundwater.storageId}/${groundwater.storageId}_forecast_figure_combination_2_weeks_${selectedDate}_wpc.png`
+            : ''
     );
 
     function handleImageError(event) {

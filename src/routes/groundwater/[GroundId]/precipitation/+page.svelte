@@ -1,6 +1,6 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import { getStreamById, wells, formatStreamName, getAvailableDates, precipOptions, getPrecipFileName } from '$lib/data/streams';
+    import { wells, formatStreamName, getAvailableDates, precipOptions } from '$lib/data/streams';
 
     let groundId = $derived(page.params.GroundId);
     let groundwater = $derived(groundId ? wells.find(w => w.storageId === groundId) : undefined);
@@ -14,11 +14,15 @@
   // Selected precipitation option state (defaults to the first option)
     let selectedPrecipOption = $state(precipOptions[0].key);
 
-        // Construct the image path based on selected date
+    // Construct the image path based on selected date
+    // let forecastImagePath = $derived(
+    //     groundwater ? `/images/forecasts/${groundwater.usgs_id}/${groundwater.storageId}_forecast_figure_combination_2_weeks_${selectedDate}_${selectedPrecipOption}.png` : ''
+    // );
     let forecastImagePath = $derived(
-        groundwater ? `/images/forecasts/${groundwater.usgs_id}/${getPrecipFileName(groundwater.usgs_id, selectedPrecipOption, selectedDate)}` : ''
+    groundwater
+        ? `/images/forecasts/${groundwater.storageId}/${groundwater.storageId}_forecast_figure_combination_2_weeks_${selectedDate}_${selectedPrecipOption}.png`
+        : ''
     );
-
     function handleImageError(event: Event) {
         console.error('Image failed to load', event);
         const img = event.target as HTMLImageElement;

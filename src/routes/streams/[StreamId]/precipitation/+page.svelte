@@ -28,46 +28,63 @@
 </script>
 
 {#if stream}
-   <div class="precip-forecast-page">
-     <nav class="tabs">
-          <a class="tab" href="/streams/{streamId}">Forecast</a>
-          <a class="tab" href="/streams/{streamId}/precipitation">Precipitation Comparison</a>
-          <a class="tab" href="/streams/{streamId}/performance">Performance</a>
-      </nav>
-      <h1>{formatStreamName(stream.name)} — Precipitation forecast comparison</h1>
+  <div class="precip-forecast-page">
+    <nav class="tabs">
+        <a class="tab" href="/streams/{streamId}">Forecast</a>
+        <a class="tab" href="/streams/{streamId}/precipitation">Precipitation Comparison</a>
+        <a class="tab" href="/streams/{streamId}/performance">Performance</a>
+    </nav>
+    <h1>{formatStreamName(stream.name)} — Precipitation forecast comparison</h1>
 
-        <!-- Date selector dropdown -->
-        <div class="date-selector">
-            <label for="date-select">Select Forecast Date:</label>
-            <select id="date-select" bind:value={selectedDate}>
-                {#each availableDates as date}
-                    <option value={date}>{date}</option>
-                {/each}
-            </select>
-        </div>
 
-        <!-- Precipitation option selector dropdown -->
-        <div class="date-selector">
-            <label for="precip-select">Select Precipitation Option:</label>
-            <select id="precip-select" bind:value={selectedPrecipOption}>
-                {#each precipOptions as option}
-                    <option value={option.key}>{option.label}</option>
-                {/each}
-            </select>
-        </div>
-
-        <!-- Forecast image -->
-        <div class="forecast-image">
-            <img 
-                src={forecastImagePath} 
-                alt="Forecast for {stream.name} on {selectedDate} using {selectedPrecipOption} precipitation forecast"
-                onerror={handleImageError}
-            />
-        </div>
-        
-        <a href="/" class="back-button">← Back to Map</a>
-        <a href="/streams/{streamId}" class="back-button">← Back to Stream</a>
+      
+    <div class="table-panel">
+      <img
+        src="/images/table_placeholder.png"
+        alt="Placeholder comparison table"
+        class="table-placeholder"
+      />
     </div>
+
+    <div class="controls-panel">
+      <div class="date-selector">
+          <label for="date-select">Select Forecast Date:</label>
+          <select id="date-select" bind:value={selectedDate}>
+              {#each availableDates as date}
+                  <option value={date}>{date}</option>
+              {/each}
+          </select>
+      </div>
+
+      <!-- Precipitation option selector dropdown -->
+      <div class="date-selector">
+        <label for="precip-select">Select Precipitation Option:</label>
+        <select id="precip-select" bind:value={selectedPrecipOption}>
+            {#each precipOptions as option}
+                <option value={option.key}>{option.label}</option>
+            {/each}
+        </select>
+      </div>
+    </div>
+
+    <!-- Forecast image -->
+    <div class="forecast-figure">
+      <img 
+          src={forecastImagePath} 
+          alt="Forecast for {stream.name} on {selectedDate} using {selectedPrecipOption} precipitation forecast"
+          onerror={handleImageError}
+          class="forecast-image"
+      />
+        <img
+          src="/images/legends/combo_streamflow_percent_with_description.png"
+          alt="Forecast legend"
+          class="legend-image"
+      />
+    </div>
+
+  <a href="/" class="back-button">← Back to Map</a>
+  <a href="/streams/{streamId}" class="back-button">← Back to Stream</a>
+</div>
 {:else}
     <p>Stream not found</p>
 {/if}
@@ -92,17 +109,13 @@
     .tab:hover {
         background: #e0e0e0;
     }
-    .precip-forecast-page {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-    }
+
     
     h1 {
         font-size: 24px;
         margin-bottom: 10px;
     }
-    
+/*     
     .date-selector {
         margin: 20px 0;
     }
@@ -119,21 +132,77 @@
         border-radius: 4px;
     }
     
+    .forecast-figure {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
     .forecast-image {
-        margin: 30px 0;
-        width: 100%;
-        max-width: 100%;
-    }
-    
-    .forecast-image img {
-        max-width: 100%;
+        width: min(100%, 1000px);
         height: auto;
-        max-width: 100%;
         display: block;
-        border: 1px solid #ddd;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin: 0 auto;
     }
-    
+
+    .legend-image {
+        width: min(100%, 1000px);
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    } */
+    .precip-forecast-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.table-panel {
+  margin: 0 0 20px 0;
+}
+
+.table-placeholder {
+  display: block;
+  width: min(100%, 700px);
+  height: auto;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: white;
+}
+.controls-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.date-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-selector label {
+  font-weight: bold;
+}
+
+.date-selector select {
+  padding: 8px 12px;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+}
+
+
+
+.forecast-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1000px;
+}
     .back-button {
         display: inline-block;
         padding: 10px 20px;

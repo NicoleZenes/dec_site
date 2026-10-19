@@ -14,16 +14,61 @@
     let selectedDate = $state(availableDates[0]);
     
     // Construct the image path based on selected date
-    let forecastImagePath = $derived(
-        stream ? `/images/forecasts/${stream.usgs_id}/${getForecastFileName(stream.usgs_id, selectedDate)}` : ''
+    // let forecastImagePath = $derived(
+    //     stream ? `/images/forecasts/${stream.usgs_id}/${getForecastFileName(stream.usgs_id, selectedDate)}` : ''
+    // );
+
+    let imageVariant = $state('standard'); // standard | simplified | placeholder
+
+    // Logic for beta testing to load NRCC simplified forecast if combo is not found and sub the legend
+    let standardFile = $derived(
+    stream ? getForecastFileName(stream.usgs_id, selectedDate) : ''
     );
 
+    let simplifiedFile = $derived(
+    stream
+        ? stream.usgs_id + '_forecast_figure_combination_2_weeks_' + selectedDate + '_control_streamflow_only_no_legend.png'
+        : ''
+    );
+
+    let forecastImagePath = $derived(
+    !stream
+        ? ''
+        : imageVariant === 'simplified'
+        ? '/images/forecasts/' + stream.usgs_id + '/' + simplifiedFile
+        : imageVariant === 'placeholder'
+            ? '/images/forecasts/placeholder.png'
+            : '/images/forecasts/' + stream.usgs_id + '/' + standardFile
+    );
+
+    let legendImagePath = $derived(
+    imageVariant === 'simplified'
+        ? '/images/legends/nrcc_only_streamflow_percent_with_description.png'
+        : '/images/legends/combo_streamflow_percent_with_description.png'
+    );
+
+    $effect(() => {
+    streamId;
+    selectedDate;
+    imageVariant = 'standard';
+    });
+
     function handleImageError(event) {
-        console.error('Image failed to load', event);
-        const img = event.target;
-        img.src = '/images/forecasts/placeholder.png';
-        img.alt = 'Forecast not available';
+    const img = event.target;
+    if (imageVariant === 'standard') {
+        imageVariant = 'simplified';
+        return;
     }
+    imageVariant = 'placeholder';
+    img.alt = 'Forecast not available';
+    }
+
+    // function handleImageError(event) {
+    //     console.error('Image failed to load', event);
+    //     const img = event.target;
+    //     img.src = '/images/forecasts/placeholder.png';
+    //     img.alt = 'Forecast not available';
+    // }
 </script>
 
 {#if stream}
@@ -49,14 +94,32 @@
         </div>
         
         <!-- Forecast image -->
-        <div class="forecast-image">
+        <!-- <div class="forecast-image">
             <img 
                 src={forecastImagePath} 
                 alt="Forecast for {stream.name} on {selectedDate}"
                 onerror={handleImageError}
             />
+            <img src="/images/legends/combo_streamflow_percent_with_description.png" alt="Forecast legend" class="legend-image" />
+        </div> -->
+        <!-- <div class="forecast-figure">
+            <img src={forecastImagePath} alt="Forecast for {stream.name}" class="forecast-image" />
+            <img src="/images/legends/combo_streamflow_percent_with_description.png" alt="Forecast legend" class="legend-image" />
+        </div> -->
+        <div class="forecast-figure">
+            <img
+                src={forecastImagePath}
+                alt="Forecast for {stream.name}"
+                class="forecast-image"
+                onerror={handleImageError}
+            />
+            <img
+                src={legendImagePath}
+                alt="Forecast legend"
+                class="legend-image"
+            />
         </div>
-        
+
         <a href="/" class="back-button">← Back to Map</a>
     </div>
 {:else}
@@ -92,19 +155,26 @@
         border-radius: 4px;
     }
     
-    .forecast-image {
-        margin: 30px 0;
-        width: 100%;
-        max-width: 100%;
+    .forecast-figure {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 1200px;
+        margin: 0 auto;
     }
-    
-    .forecast-image img {
-        max-width: 100%;
+
+    .forecast-image {
+        width: min(100%, 1000px);
         height: auto;
-        max-width: 100%;
         display: block;
-        border: 1px solid #ddd;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin: 0 auto;
+    }
+
+    .legend-image {
+        width: min(100%, 1000px);
+        height: auto;
+        display: block;
+        margin: 0 auto;
     }
     
     .back-button {
@@ -126,17 +196,18 @@
     gap: 8px;
     margin-bottom: 20px;
     border-bottom: 2px solid #ccc;
-}
+    }
 
-.tab {
-    padding: 8px 16px;
-    background: #f0f0f0;
-    border-radius: 4px 4px 0 0;
-    text-decoration: none;
-    color: inherit;
-}
+    .tab {
+        padding: 8px 16px;
+        background: #f0f0f0;
+        border-radius: 4px 4px 0 0;
+        text-decoration: none;
+        color: inherit;
+    }
 
-.tab:hover {
-    background: #e0e0e0;
-}
+    .tab:hover {
+        background: #e0e0e0;
+    }
+
 </style>
