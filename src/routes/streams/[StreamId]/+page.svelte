@@ -73,6 +73,10 @@
     // Adding overlay for dynamic percentages
     let overlayPoints = $state([]);
     let overlayError = $state('');
+    let overlayZones = $state([]);
+    let hoveredZone = $state(null);
+    let tooltipX = $state(0);
+    let tooltipY = $state(0);
 
     // Overlay json path
     let overlayDataPath = $derived(
@@ -103,7 +107,10 @@
 
         const data = await response.json();
         if (!cancelled) {
-            overlayPoints = Array.isArray(data) ? data : (data.points ?? []);
+            //overlayPoints = Array.isArray(data) ? data : (data.points ?? []);
+            const normalized = normalizeOverlayData(data);
+            overlayPoints = normalized.points;
+            overlayZones = normalized.zones;
         }
         } catch (err) {
         if (!cancelled) {
@@ -117,6 +124,54 @@
         cancelled = true;
     };
     });
+
+    function firstVal(v) {
+    return Array.isArray(v) ? v[0] : v;
+    }
+
+    function toNum(v) {
+    const n = Number(firstVal(v));
+    return Number.isFinite(n) ? n : 0;
+    }
+
+    function toStr(v) {
+    const s = firstVal(v);
+    return s == null ? '' : String(s);
+    }
+
+    function normalizeOverlayData(raw) {
+    const pointsRaw = Array.isArray(raw?.points) ? raw.points : [];
+    const zonesRaw = Array.isArray(raw?.zones) ? raw.zones : [];
+
+    const points = pointsRaw.map((p) => ({
+    category: toStr(p.category),
+    probability: toNum(p.probability),
+    x_pos: toNum(p.x_pos),
+    y_pos: toNum(p.y_pos),
+    forecast: toStr(p.forecast)
+    }));
+
+    const zones = zonesRaw.map((z) => ({
+    id: toStr(z.id),
+    forecast: toStr(z.forecast),
+    category: toStr(z.category),
+    probability: toNum(z.probability),
+    discharge_min_cfs: toNum(z.discharge_min_cfs),
+    discharge_max_cfs: toNum(z.discharge_max_cfs),
+    rect: {
+    x: toNum(z.rect?.x),
+    y: toNum(z.rect?.y),
+    w: toNum(z.rect?.w),
+    h: toNum(z.rect?.h)
+    }
+    }));
+
+    return {
+    template_version: toStr(raw?.template_version),
+    points,
+    zones
+    };
+    }
 </script>
 
 {#if stream}
@@ -175,7 +230,47 @@
                 {/each}
                 </div>
             {/if}
+            {#if overlayZones.length > 0 && imageVariant !== 'placeholder'}
+                <div class="hotspot-layer" aria-hidden="true">
+                    {#each overlayZones as zone}
+                    <div
+                        class="hotspot"
+                        role="button"
+                        tabindex="0"
+                        style={
+                        "left:" + zone.rect.x + "%; " +
+                        "top:" + zone.rect.y + "%; " +
+                        "width:" + zone.rect.w + "%; " +
+                        "height:" + zone.rect.h + "%;"
+                        }
+                        onmouseenter={(e) => {
+                        hoveredZone = zone;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        tooltipX = rect.left + rect.width / 2;
+                        tooltipY = rect.top - 12;
+                        }}
+                        onmouseleave={() => {
+                        hoveredZone = null;
+                        }}
+                    >
+                    </div>
+                    {/each}
+                </div>
+                {/if}
+                {#if hoveredZone}
+                <div
+                    class="tooltip"
+                    style={"left:" + tooltipX + "px; top:" + tooltipY + "px;"}
+                >
+                    <div class="tooltip-content">
+                    According to our model, there is a <strong>{hoveredZone.probability.toFixed(1)}%</strong> chance 
+                    streamflow will {hoveredZone.category.toLowerCase()} next {hoveredZone.forecast} 
+                    with discharge rates of <strong>{hoveredZone.discharge_min_cfs.toFixed(2)} cfs</strong> to <strong>{hoveredZone.discharge_max_cfs.toFixed(2)} cfs</strong>.
+                    </div>
+                </div>
+                {/if}
             </div>
+
         <div class="forecast-legend">
             <!-- <img
                 src={forecastImagePath}
@@ -199,9 +294,10 @@
 
 <style>
     .forecast-page {
-        max-width: 1200px;
+        max-width: none;
+        width: min(98vw, 1900px);
         margin: 0 auto;
-        padding: 20px;
+        padding: 12px 16px 20px;
     }
     
     h1 {
@@ -234,14 +330,14 @@
     }
 
     .forecast-image {
-        width: min(100%, 1000px);
+        width: 100%;
         height: auto;
         display: block;
         margin: 0 auto;
     }
 
     .legend-image {
-        width: min(100%, 1000px);
+        width: min(98vw, 1800px);
         height: auto;
         display: block;
         margin: 0 auto;
@@ -282,7 +378,7 @@
 
     .forecast-image-wrap {
     position: relative;
-    width: min(100%, 1000px);
+    width: min(98vw, 1800px);
     margin: 0 auto;
     }
 
@@ -304,5 +400,39 @@
         -1px  1px 0 #fff,
         1px  1px 0 #fff;
     white-space: nowrap;
+    }
+
+    .hotspot-layer {
+    position: absolute;
+    inset: 0;
+    }
+
+    .hotspot {
+    position: absolute;
+    cursor: pointer;
+    }
+
+    .hotspot:hover {
+    background: rgba(0, 0, 255, 0.05);
+    outline: 2px solid rgba(0, 0, 255, 0.3);
+    }
+
+    .tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.92);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    max-width: 320px;
+    z-index: 1000;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .tooltip-content {
+    white-space: normal;
     }
 </style>
