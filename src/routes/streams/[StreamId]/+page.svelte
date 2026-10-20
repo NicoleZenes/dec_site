@@ -69,6 +69,54 @@
     //     img.src = '/images/forecasts/placeholder.png';
     //     img.alt = 'Forecast not available';
     // }
+
+    // Adding overlay for dynamic percentages
+    let overlayPoints = $state([]);
+    let overlayError = $state('');
+
+    // Overlay json path
+    let overlayDataPath = $derived(
+    stream
+        ? '/overlays/' + stream.usgs_id + '_forecast_overlay_' + selectedDate + '.json'
+        : ''
+    );
+
+    // load JSON whenever the stream/date changes (this will be scenario in the precipitation page)
+    $effect(() => {
+    const path = overlayDataPath;
+    if (!path) {
+        overlayPoints = [];
+        overlayError = '';
+        return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+        try {
+        overlayError = '';
+        const response = await fetch(path);
+        if (!response.ok) {
+            if (!cancelled) overlayPoints = [];
+            return;
+        }
+
+        const data = await response.json();
+        if (!cancelled) {
+            overlayPoints = Array.isArray(data) ? data : (data.points ?? []);
+        }
+        } catch (err) {
+        if (!cancelled) {
+            overlayPoints = [];
+            overlayError = 'Overlay JSON failed to load';
+        }
+        }
+    })();
+
+    return () => {
+        cancelled = true;
+    };
+    });
 </script>
 
 {#if stream}
@@ -106,13 +154,35 @@
             <img src={forecastImagePath} alt="Forecast for {stream.name}" class="forecast-image" />
             <img src="/images/legends/combo_streamflow_percent_with_description.png" alt="Forecast legend" class="legend-image" />
         </div> -->
-        <div class="forecast-figure">
+        <div class="forecast-image-wrap">
             <img
                 src={forecastImagePath}
                 alt="Forecast for {stream.name}"
                 class="forecast-image"
                 onerror={handleImageError}
             />
+
+            {#if overlayPoints.length > 0 && imageVariant !== 'placeholder'}
+                <div class="probability-overlay" aria-hidden="true">
+                {#each overlayPoints as point}
+                    <div
+                    class="probability-label"
+                    style={"left:" + point.x_pos + "%; top:" + point.y_pos + "%;"}
+                    title={point.category + ": " + point.probability + "%"}
+                    >
+                    {Math.round(point.probability)}%
+                    </div>
+                {/each}
+                </div>
+            {/if}
+            </div>
+        <div class="forecast-legend">
+            <!-- <img
+                src={forecastImagePath}
+                alt="Forecast for {stream.name}"
+                class="forecast-image"
+                onerror={handleImageError}
+            /> -->
             <img
                 src={legendImagePath}
                 alt="Forecast legend"
@@ -155,7 +225,7 @@
         border-radius: 4px;
     }
     
-    .forecast-figure {
+    .forecast-legend {
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -210,4 +280,29 @@
         background: #e0e0e0;
     }
 
+    .forecast-image-wrap {
+    position: relative;
+    width: min(100%, 1000px);
+    margin: 0 auto;
+    }
+
+    .probability-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    }
+
+    .probability-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    font-size: clamp(14px, 1.7vw, 24px);
+    color: #111;
+    text-shadow:
+        -1px -1px 0 #fff,
+        1px -1px 0 #fff,
+        -1px  1px 0 #fff,
+        1px  1px 0 #fff;
+    white-space: nowrap;
+    }
 </style>
