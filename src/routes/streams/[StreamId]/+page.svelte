@@ -78,10 +78,10 @@
     let tooltipX = $state(0);
     let tooltipY = $state(0);
 
-    // Overlay json path
+    // Overlay json path - default to the wpc variant
     let overlayDataPath = $derived(
     stream
-        ? '/overlays/' + stream.usgs_id + '_forecast_overlay_' + selectedDate + '.json'
+        ? '/overlays/' + stream.usgs_id + '_forecast_overlay_' + selectedDate + '_wpc.json'
         : ''
     );
 

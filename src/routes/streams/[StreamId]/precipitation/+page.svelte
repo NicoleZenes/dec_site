@@ -11,19 +11,191 @@
     // Selected date state (defaults to today)
     let selectedDate = $state(availableDates[0]);
 
-  // Selected precipitation option state (defaults to the first option)
+    // Selected precipitation option state (defaults to the first option)
     let selectedPrecipOption = $state(precipOptions[0].key);
+
+
+
+    // function handleImageError(event: Event) {
+    //     console.error('Image failed to load', event);
+    //     const img = event.target as HTMLImageElement;
+    //     img.src = '/images/forecasts/placeholder.png';
+    //     img.alt = 'Forecast not available';
+    // }
+
+    let imageVariant = $state('standard'); // standard | simplified | placeholder
+
+    let legendImagePath = $derived(
+        imageVariant === 'simplified'
+            ? '/images/legends/nrcc_only_streamflow_percent_with_description.png'
+            : '/images/legends/combo_streamflow_percent_with_description.png'
+    );
+
+    let standardFile = $derived(
+    stream ? getPrecipFileName(stream.usgs_id, selectedPrecipOption, selectedDate) : ''
+    );
+
+    let simplifiedFile = $derived(
+        stream
+            ? stream.usgs_id + '_forecast_figure_combination_2_weeks_' + selectedDate + '_control_streamflow_only_no_legend.png'
+            : ''
+    );
 
         // Construct the image path based on selected date
     let forecastImagePath = $derived(
-        stream ? `/images/forecasts/${stream.usgs_id}/${getPrecipFileName(stream.usgs_id, selectedPrecipOption, selectedDate)}` : ''
+        !stream
+            ? ''
+            : imageVariant === 'simplified'
+            ? '/images/forecasts/' + stream.usgs_id + '/' + simplifiedFile
+            : imageVariant === 'placeholder'
+                ? '/images/forecasts/placeholder.png'
+                : '/images/forecasts/' + stream.usgs_id + '/' + standardFile
     );
 
     function handleImageError(event: Event) {
-        console.error('Image failed to load', event);
         const img = event.target as HTMLImageElement;
-        img.src = '/images/forecasts/placeholder.png';
+        if (imageVariant === 'standard') {
+            imageVariant = 'simplified';
+            return;
+        }
+        imageVariant = 'placeholder';
         img.alt = 'Forecast not available';
+    }
+
+    $effect(() => {
+      selectedPrecipOption;
+      selectedDate;
+      imageVariant = 'standard';
+  });
+    // Adding overlay for dynamic percentages
+    let overlayPoints = $state([]);
+    let overlayError = $state('');
+    let overlayZones = $state([]);
+    let hoveredZone = $state(null);
+    let tooltipX = $state(0);
+    let tooltipY = $state(0);
+
+    // Overlay json path - needs to change with the precipitation option
+    let overlayDataPath = $derived(
+    stream
+        ? '/overlays/' + stream.usgs_id + '_nz_forecast_' + selectedDate.replace(/-/g, '') + '_' + selectedPrecipOption + '.json'
+        : ''
+    );
+
+      // load JSON whenever the stream/date/precipitation option changes (this will be scenario in the precipitation page)
+    $effect(() => {
+    const path = overlayDataPath;
+    if (!path) {
+        overlayPoints = [];
+        overlayError = '';
+        return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+        try {
+        overlayError = '';
+        const response = await fetch(path);
+        if (!response.ok) {
+            if (!cancelled) overlayPoints = [];
+            return;
+        }
+
+        const data = await response.json();
+        if (!cancelled) {
+            const normalized = normalizeOverlayData(data);
+            overlayPoints = normalized.points;
+            overlayZones = normalized.zones;
+        }
+        } catch (err) {
+        if (!cancelled) {
+            overlayPoints = [];
+            overlayError = 'Overlay JSON failed to load';
+        }
+        }
+    })();
+
+    return () => {
+        cancelled = true;
+    };
+    });
+
+    function firstVal(v) {
+    return Array.isArray(v) ? v[0] : v;
+    }
+
+    function toNum(v) {
+    const n = Number(firstVal(v));
+    return Number.isFinite(n) ? n : 0;
+    }
+
+    function toStr(v) {
+    const s = firstVal(v);
+    return s == null ? '' : String(s);
+    }
+
+    function normalizeOverlayData(raw) {
+    const pointsRaw = Array.isArray(raw?.points) ? raw.points : [];
+    const zonesRaw = Array.isArray(raw?.zones) ? raw.zones : [];
+
+    const points = pointsRaw.map((p) => ({
+    category: toStr(p.category),
+    probability: toNum(p.probability),
+    x_pos: toNum(p.x_pos),
+    y_pos: toNum(p.y_pos),
+    forecast: toStr(p.forecast)
+    }));
+
+    const zones = zonesRaw.map((z) => ({
+    id: toStr(z.id),
+    forecast: toStr(z.forecast),
+    category: toStr(z.category),
+    probability: toNum(z.probability),
+    discharge_min_cfs: toNum(z.discharge_min_cfs),
+    discharge_max_cfs: toNum(z.discharge_max_cfs),
+    rect: {
+    x: toNum(z.rect?.x),
+    y: toNum(z.rect?.y),
+    w: toNum(z.rect?.w),
+    h: toNum(z.rect?.h)
+    }
+    }));
+
+    return {
+    template_version: toStr(raw?.template_version),
+    points,
+    zones
+    };
+    }
+
+    function getCategoryWord(category: string): string {
+    const categoryMap: Record<string, string> = {
+        'More': 'increase',
+        'Less': 'decrease',
+        'Same': 'persist'
+    };
+    return categoryMap[category] || category.toLowerCase();
+    }
+
+    function getForecastWord(category: string): string {
+    const categoryMap: Record<string, string> = {
+        '7-day': '7 days',
+        '14-day': '14 days'
+    };
+    return categoryMap[category] || category.toLowerCase();
+    }
+
+    function getDischargeText(category: string, minCfs: number, maxCfs: number): string {
+      switch (category) {
+          case 'Less':
+              return `with discharge rates of <strong>${maxCfs.toFixed(2)} cfs</strong> or less`;
+          case 'More':
+              return `with discharge rates of <strong>${minCfs.toFixed(2)} cfs</strong> or more`;
+          case 'Same':
+          default:
+              return `with discharge rates of <strong>${minCfs.toFixed(2)} cfs</strong> to <strong>${maxCfs.toFixed(2)} cfs</strong>`;
+      }
     }
 </script>
 
@@ -68,7 +240,7 @@
     </div>
 
     <!-- Forecast image -->
-    <div class="forecast-figure">
+    <!-- <div class="forecast-figure">
       <img 
           src={forecastImagePath} 
           alt="Forecast for {stream.name} on {selectedDate} using {selectedPrecipOption} precipitation forecast"
@@ -80,8 +252,83 @@
           alt="Forecast legend"
           class="legend-image"
       />
-    </div>
+    </div> -->
+        <div class="forecast-image-wrap">
+            <img
+                src={forecastImagePath}
+                alt="Forecast for {stream.name}"
+                class="forecast-image"
+                onerror={handleImageError}
+            />
 
+            {#if overlayPoints.length > 0 && imageVariant !== 'placeholder'}
+                <div class="probability-overlay" aria-hidden="true">
+                {#each overlayPoints as point}
+                    <div
+                    class="probability-label"
+                    style={"left:" + point.x_pos + "%; top:" + point.y_pos + "%;"}
+                    title={point.category + ": " + point.probability + "%"}
+                    >
+                    {Math.round(point.probability)}%
+                    </div>
+                {/each}
+                </div>
+            {/if}
+            {#if overlayZones.length > 0 && imageVariant !== 'placeholder'}
+                <div class="hotspot-layer" aria-hidden="true">
+                    {#each overlayZones as zone}
+                    <div
+                        class="hotspot"
+                        role="button"
+                        tabindex="0"
+                        style={
+                        "left:" + zone.rect.x + "%; " +
+                        "top:" + zone.rect.y + "%; " +
+                        "width:" + zone.rect.w + "%; " +
+                        "height:" + zone.rect.h + "%;"
+                        }
+                        onmouseenter={(e) => {
+                        hoveredZone = zone;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        tooltipX = rect.left + rect.width / 2;
+                        tooltipY = rect.top - 12;
+                        }}
+                        onmouseleave={() => {
+                        hoveredZone = null;
+                        }}
+                    >
+                    </div>
+                    {/each}
+                </div>
+                {/if}
+                {#if hoveredZone}
+                <div
+                    class="tooltip"
+                    style={"left:" + tooltipX + "px; top:" + tooltipY + "px;"}
+                >
+                    <div class="tooltip-content">
+                    According to our model, there is a <strong>{hoveredZone.probability.toFixed(1)}%</strong> chance 
+                    streamflow will {getCategoryWord(hoveredZone.category)} next {getForecastWord(hoveredZone.forecast)} 
+                    {@html getDischargeText(hoveredZone.category, hoveredZone.discharge_min_cfs, hoveredZone.discharge_max_cfs)}.
+                    <!-- with discharge rates of <strong>{hoveredZone.discharge_min_cfs.toFixed(2)} cfs</strong> to <strong>{hoveredZone.discharge_max_cfs.toFixed(2)} cfs</strong>. -->
+                    </div>
+                </div>
+                {/if}
+            </div>
+
+        <div class="forecast-legend">
+            <!-- <img
+                src={forecastImagePath}
+                alt="Forecast for {stream.name}"
+                class="forecast-image"
+                onerror={handleImageError}
+            /> -->
+            <img
+                src={legendImagePath}
+                alt="Forecast legend"
+                class="legend-image"
+            />
+        </div>
   <a href="/" class="back-button">← Back to Map</a>
   <a href="/streams/{streamId}" class="back-button">← Back to Stream</a>
 </div>
@@ -196,13 +443,13 @@
 }
 
 
-
+/* 
 .forecast-figure {
   display: flex;
   flex-direction: column;
   gap: 12px;
   max-width: 1000px;
-}
+} */
     .back-button {
         display: inline-block;
         padding: 10px 20px;
@@ -215,5 +462,88 @@
     
     .back-button:hover {
         background-color: #0052a3;
+    }
+       
+    .forecast-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .forecast-image {
+        width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .legend-image {
+        width: min(98vw, 1800px);
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+
+    .forecast-image-wrap {
+    position: relative;
+    width: min(98vw, 1800px);
+    margin: 0 auto;
+    }
+
+    .probability-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    }
+
+    .probability-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    font-size: clamp(14px, 1.7vw, 24px);
+    color: #111;
+    text-shadow:
+        -1px -1px 0 #fff,
+        1px -1px 0 #fff,
+        -1px  1px 0 #fff,
+        1px  1px 0 #fff;
+    white-space: nowrap;
+    }
+
+    .hotspot-layer {
+    position: absolute;
+    inset: 0;
+    }
+
+    .hotspot {
+    position: absolute;
+    cursor: pointer;
+    }
+
+    .hotspot:hover {
+    background: rgba(0, 0, 255, 0.05);
+    outline: 2px solid rgba(0, 0, 255, 0.3);
+    }
+
+    .tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.92);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 18px;
+    max-width: 320px;
+    z-index: 1000;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .tooltip-content {
+    white-space: normal;
     }
 </style>
