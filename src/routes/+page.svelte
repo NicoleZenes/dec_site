@@ -129,8 +129,8 @@
         const legend = L.control({ position: 'bottomright' });
         legend.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
-            const labels = ['≤10%', '11-25%', '26-75%', '76-90%', '>90%'];
-            const colors = ['#b12222', '#ffa500', '#00ff00', '#40e0d0', '#0000ff'];
+            const labels = ['Low','≤10%', '11-25%', '26-75%', '76-90%', '>90%', 'High'];
+            const colors = ['#8b0000', '#ff0000', '#ffa500', '#00ff00', '#00ffff', '#0000ff', '#000000'];
             div.innerHTML = '<h4 style="margin: 0 0 8px 0;">Percentile</h4>';
             labels.forEach((label, i) => {
                 div.innerHTML += `<div style="display:flex; align-items:center; margin-bottom:4px;"><span style="display:inline-block; width:14px; height:14px; background:${colors[i]}; border:1px solid #333; border-radius:50%; margin-right:8px;"></span><span>${label}</span></div>`;
@@ -378,21 +378,41 @@
 </div>
 
 <style>
-    .map-container {
-        width: 80vw;
-        height: 70vh; /* Replaces your image aspect ratio */
-        /*border: 2px solid #f80202; /* Kept your visual debugging border */
-        border-radius: 8px;
-        margin: 0 auto;
-        z-index: 1; /* Ensures Leaflet controls don't overlap headers */
+        .maps-container {
+        display: flex;
+        gap: 20px;
+        width: 100%;
+        padding: 20px;
+        box-sizing: border-box;
     }
 
-    /* You can style the Leaflet tooltip to match your old marker-label */
+    .map-section {
+        flex: 1;
+    }
+
+    .map-section h2 {
+        margin: 0 0 10px 0;
+        text-align: center;
+        font-size: 18px;
+    }
+
+    .map-container {
+        width: 100%;
+        height: 500px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    h1 {
+        text-align: center;
+        width: 100%;
+    }
+
     :global(.custom-tooltip) {
         background-color: rgba(255, 255, 255, 0.95);
         padding: 4px 8px;
         border-radius: 4px;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: bold;
         border: 1px solid #333;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -402,21 +422,13 @@
         background: rgba(255, 255, 255, 0.9);
         padding: 8px 10px;
         border-radius: 6px;
-        box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
         color: #333;
-        line-height: 1.4;
+        font-size: 12px;
     }
+
     :global(.triangle-marker) {
         background: transparent;
         border: none;
-    }
-    :global(.symbol-legend) {
-        background: rgba(255, 255, 255, 0.9);
-        padding: 8px 10px;
-        border-radius: 6px;
-        box-shadow: 0 0 8px rgba(0,0,0,0.2);
-        color: #333;
-        line-height: 1.4;
-        margin-bottom: 10px;
     }
 </style>
