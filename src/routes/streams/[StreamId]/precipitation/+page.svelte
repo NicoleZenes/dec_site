@@ -1,6 +1,9 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { getStreamById, formatStreamName, getAvailableDates, precipOptions, getPrecipFileName } from '$lib/data/streams';
+    import { onMount } from 'svelte';
+    // import Chart from 'chart.js/auto';
+    import { browser } from '$app/environment';
 
     let streamId = $derived(page.params.StreamId);
     let stream = $derived(streamId ? getStreamById(streamId) : undefined);
@@ -197,6 +200,150 @@
               return `with discharge rates of <strong>${minCfs.toFixed(2)} cfs</strong> to <strong>${maxCfs.toFixed(2)} cfs</strong>`;
       }
     }
+
+    // Add pie charts
+    const categoryColors = {
+      "Less": "#964B00", // brown
+      "Same": "#3BB143", // green
+      "More": "#0072B2"  // blue
+    };
+    const categoryLabels = {
+      'More': 'Increase',
+      'Same': 'Persist',
+      'Less': 'Decrease'
+    };
+    // Canvas references for Chart.js
+    let canvas7Day = $state(null);
+    let canvas14Day = $state(null);
+    let chart7Day = null;
+    let chart14Day = null;
+
+    function getChartConfig(forecastPeriod) {
+      // Filter points for the given forecast period
+      const points = overlayPoints.filter(p => p.forecast === forecastPeriod);
+      // Extract labels and data for the chart
+      const labels = points.map(p => categoryLabels[p.category] || p.category);  // Map to human-readable labels
+      const data = points.map(p => p.probability);
+      const bgColors = labels.map(label => categoryColors[Object.keys(categoryLabels).find(key => categoryLabels[key] === label)]);
+
+    // Return the complete Chart.js config
+      return {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: bgColors,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { 
+              position: 'bottom',
+            labels: {
+              font: {
+                size: 14
+              }
+            }
+            },
+            title: { display: true, text: `${forecastPeriod} Forecast`, font: { size: 16 } }
+          },
+          tooltip: {
+            bodyFont: {
+              size: 14
+            }
+          }
+        }
+      };
+    }
+
+$effect(() => {
+    if (!browser) return;  // Only run on client
+    
+    // Watch for changes to overlayPoints
+    overlayPoints;
+    
+    // Import Chart.js only when needed
+    import('chart.js/auto').then(({ default: Chart }) => {
+      if (!canvas7Day || !canvas14Day) {
+          console.warn('Canvas elements not ready:', { canvas7Day, canvas14Day });
+          return;
+      }
+      
+      if (overlayPoints.length === 0) {
+          console.warn('No overlay points loaded yet');
+          return;
+      }
+
+    try {
+        // Debug: log what we're trying to render
+        const config7Day = getChartConfig('7-day');
+        const config14Day = getChartConfig('14-day');
+        
+        console.log('7-day config:', config7Day);
+        console.log('14-day config:', config14Day);
+        
+        // Validate we have data
+        if (config7Day.data.labels.length === 0 || config14Day.data.labels.length === 0) {
+            console.warn('Empty chart data - no points matched forecast periods');
+            return;
+        }
+
+        chart7Day?.destroy();
+        chart14Day?.destroy();
+        
+        chart7Day = new Chart(canvas7Day, config7Day);
+        chart14Day = new Chart(canvas14Day, config14Day);
+        console.log('Charts created successfully');
+        
+    } catch (error) {
+        console.error('Chart initialization error:', error);
+    }
+  });
+});
+  // $effect(() => {
+  //     if (!browser) return;  // Only run on client
+
+  //     // Watch for changes to overlayPoints
+  //     overlayPoints;
+      
+  // if (!canvas7Day || !canvas14Day) {
+  //         console.warn('Canvas elements not ready:', { canvas7Day, canvas14Day });
+  //         return;
+  //     }
+      
+  //     if (overlayPoints.length === 0) {
+  //         console.warn('No overlay points loaded yet');
+  //         return;
+  //     }
+
+  //     try {
+  //         // Debug: log what we're trying to render
+  //         const config7Day = getChartConfig('7-day');
+  //         const config14Day = getChartConfig('14-day');
+          
+  //         console.log('7-day config:', config7Day);
+  //         console.log('14-day config:', config14Day);
+          
+  //         // Validate we have data
+  //         if (config7Day.data.labels.length === 0 || config14Day.data.labels.length === 0) {
+  //             console.warn('Empty chart data - no points matched forecast periods');
+  //             return;
+  //         }
+
+  //         chart7Day?.destroy();
+  //         chart14Day?.destroy();
+          
+  //         chart7Day = new Chart(canvas7Day, config7Day);
+  //         chart14Day = new Chart(canvas14Day, config14Day);
+  //         console.log('Charts created successfully');
+          
+  //     } catch (error) {
+  //         console.error('Chart initialization error:', error);
+  //     }
+  // });
 </script>
 
 {#if stream}
@@ -208,15 +355,30 @@
     </nav>
     <h1>{formatStreamName(stream.name)} — Precipitation forecast comparison</h1>
 
-
-      
+  <div class="dashboard-container">
+    <!-- Left Side: Table -->
     <div class="table-panel">
-      <img
-        src="/images/table_placeholder.png"
-        alt="Placeholder comparison table"
-        class="table-placeholder"
-      />
+      <h2>Precipitation Forecast</h2> 
+        <img
+          src="/images/table_placeholder.png"
+          alt="Placeholder comparison table"
+          class="table-placeholder"
+        />
+      </div>
+
+    <!-- Right Side: Pie Charts -->
+    <div class="charts-section">
+      <h2>Streamflow Probability</h2>
+      <div class="charts-wrapper">
+        <div class="chart-container">
+          <canvas bind:this={canvas7Day}></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas bind:this={canvas14Day}></canvas>
+        </div>
+      </div>
     </div>
+  </div> <!-- Close dashboard-container -->
 
     <div class="controls-panel">
       <div class="date-selector">
@@ -227,7 +389,7 @@
               {/each}
           </select>
       </div>
-
+  
       <!-- Precipitation option selector dropdown -->
       <div class="date-selector">
         <label for="precip-select">Select Precipitation Option:</label>
@@ -307,8 +469,8 @@
                     style={"left:" + tooltipX + "px; top:" + tooltipY + "px;"}
                 >
                     <div class="tooltip-content">
-                    According to our model, there is a <strong>{hoveredZone.probability.toFixed(1)}%</strong> chance 
-                    streamflow will {getCategoryWord(hoveredZone.category)} next {getForecastWord(hoveredZone.forecast)} 
+                    According to the NRCC model, there is a <strong>{hoveredZone.probability.toFixed(1)}%</strong> chance 
+                    streamflow will {getCategoryWord(hoveredZone.category)} in {getForecastWord(hoveredZone.forecast)} 
                     {@html getDischargeText(hoveredZone.category, hoveredZone.discharge_min_cfs, hoveredZone.discharge_max_cfs)}.
                     <!-- with discharge rates of <strong>{hoveredZone.discharge_min_cfs.toFixed(2)} cfs</strong> to <strong>{hoveredZone.discharge_max_cfs.toFixed(2)} cfs</strong>. -->
                     </div>
@@ -401,29 +563,60 @@
         margin: 0 auto;
     } */
     .precip-forecast-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-.table-panel {
-  margin: 0 0 20px 0;
-}
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 5px 20px 5px 20px;
+  }
 
-.table-placeholder {
-  display: block;
-  width: min(100%, 700px);
-  height: auto;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  background: white;
-}
-.controls-panel {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px 24px;
-  align-items: center;
-  margin-bottom: 16px;
-}
+.dashboard-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    font-family: sans-serif;
+    max-width: 100%;
+    margin: 20px 0;
+    padding: 0 20px;  /* Add horizontal padding instead */
+  }
+
+  .table-panel {
+    flex: 1;
+    min-width: 300px;
+  }
+  .charts-section {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .charts-wrapper {
+    display: flex;
+    gap: 20px;
+    justify-content: space-around;
+  }
+
+  /* Keeps the pie charts constrained so they don't blow up in size */
+  .chart-container {
+    width: 350px;
+    height: 350px;
+    font-size: 14px;
+  }
+
+  .table-placeholder {
+    display: block;
+    width: min(100%, 700px);
+    height: auto;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    background: white;
+  }
+  .controls-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
 
 .date-selector {
   display: flex;
@@ -468,8 +661,9 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        max-width: 1200px;
-        margin: 0 auto;
+        max-width: 100%;
+        margin: 20px 0;
+        padding: 0 0;
     }
 
     .forecast-image {
@@ -489,8 +683,9 @@
 
     .forecast-image-wrap {
     position: relative;
-    width: min(98vw, 1800px);
-    margin: 0 auto;
+    width: 100%;      /* Changed from min(98vw, 1800px) */
+    margin: 20px 0;   /* Removed auto centering */
+    padding: 0 20px;  /* Add horizontal padding */
     }
 
     .probability-overlay {
