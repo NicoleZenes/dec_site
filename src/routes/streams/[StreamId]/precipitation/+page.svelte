@@ -362,7 +362,30 @@ let forecastByType = $derived.by(() => {
     grouped[item.forecast_type][item.period] = item;
   });
   
-  return grouped;
+    // Combine WPC (7-day) with Control (14-day)
+  const combined = [];
+  if (grouped['wpc'] || grouped['control']) {
+    combined.push({
+      label: 'WPC/CFS',
+      key: 'wpc_control',
+      '7-day': grouped['wpc']?.['7-day'],
+      '14-day': grouped['control']?.['14-day']
+    });
+  }
+  
+  // Add other forecast types
+  ['p10', 'p90', 'mean', 'control'].forEach(type => {
+    if (grouped[type]) {
+      combined.push({
+        label: getForecastTypeLabel(type),
+        key: type,
+        '7-day': grouped[type]?.['7-day'],
+        '14-day': grouped[type]?.['14-day']
+      });
+    }
+  });
+  
+  return combined;
 });
 </script>
 
@@ -400,26 +423,27 @@ let forecastByType = $derived.by(() => {
                 </tr>
               </thead>
               <tbody>
-                {#each Object.entries(forecastByType) as [forecastType, periods]}
-                  <tr class:highlighted={forecastType === selectedPrecipOption}>
-                    <td>{getForecastTypeLabel(forecastType)}</td>
-                    <td>
-                      {#if periods['7-day']}
-                        {periods['7-day'].precip_mm.toFixed(2)} mm / {periods['7-day'].precip_inches.toFixed(2)} in
-                      {:else}
-                        N/A
-                      {/if}
-                    </td>
-                    <td>
-                      {#if periods['14-day']}
-                        {periods['14-day'].precip_mm.toFixed(2)} mm / {periods['14-day'].precip_inches.toFixed(2)} in
-                      {:else}
-                        N/A
-                      {/if}
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
+                {#each forecastByType as row}
+                <tr class:highlighted={row.key === selectedPrecipOption || 
+                                      (row.key === 'wpc_control' && (selectedPrecipOption === 'wpc' || selectedPrecipOption === 'control'))}>
+                  <td>{row.label}</td>
+                  <td>
+                    {#if row['7-day']}
+                      {row['7-day'].precip_mm.toFixed(2)} mm / {row['7-day'].precip_inches.toFixed(2)} in
+                    {:else}
+                      N/A
+                    {/if}
+                  </td>
+                  <td>
+                    {#if row['14-day']}
+                      {row['14-day'].precip_mm.toFixed(2)} mm / {row['14-day'].precip_inches.toFixed(2)} in
+                    {:else}
+                      N/A
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
             </table>
           {:else}
             <p>No forecast data available</p>
@@ -431,7 +455,7 @@ let forecastByType = $derived.by(() => {
     
     <!-- Right Side: Pie Charts -->
     <div class="charts-section">
-      <h2>Streamflow Probability</h2>
+      <h2>Streamflow Trajectory Probability</h2>
       <div class="charts-wrapper">
         <div class="chart-container">
           <canvas bind:this={canvas7Day}></canvas>
