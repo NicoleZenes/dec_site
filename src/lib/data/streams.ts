@@ -78,3 +78,12 @@ export function getPrecipFileName(usgs_id: string, optionKey: string, date: stri
 
 export const streamSites = streams.filter(s => s.type === 'stream');
 export const wells = streams.filter(s => s.type === 'groundwater');
+
+export async function getPrecipjson(usgs_id: string, date: string): Promise<any> {
+    const fileName = `${usgs_id}_precip_metadata_${date.replace(/-/g, '')}.json`;
+    const response = await fetch(`/precip_jsons/${fileName}`);
+    if (!response.ok) {
+        throw new Error(`Failed to load precipitation JSON: ${response.status}`);
+    }
+    return response.json();
+}
