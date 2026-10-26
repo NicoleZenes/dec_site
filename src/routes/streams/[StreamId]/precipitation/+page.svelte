@@ -1,6 +1,6 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import { getStreamById, formatStreamName, getAvailableDates, precipOptions, getPrecipFileName } from '$lib/data/streams';
+    import { getStreamById, formatStreamName, getAvailableDates, precipOptions, getPrecipFileName, getPrecipjson } from '$lib/data/streams';
     import { onMount } from 'svelte';
     // import Chart from 'chart.js/auto';
     import { browser } from '$app/environment';
@@ -303,47 +303,67 @@ $effect(() => {
     }
   });
 });
-  // $effect(() => {
-  //     if (!browser) return;  // Only run on client
+  
+let forecastJson = $state(null);
+let forecastSources = $state([]);
+let forecastError = $state('');
 
-  //     // Watch for changes to overlayPoints
-  //     overlayPoints;
-      
-  // if (!canvas7Day || !canvas14Day) {
-  //         console.warn('Canvas elements not ready:', { canvas7Day, canvas14Day });
-  //         return;
-  //     }
-      
-  //     if (overlayPoints.length === 0) {
-  //         console.warn('No overlay points loaded yet');
-  //         return;
-  //     }
+$effect(() => {
+  if (!stream) {
+    forecastJson = null;
+    forecastSources = [];
+    return;
+  }
 
-  //     try {
-  //         // Debug: log what we're trying to render
-  //         const config7Day = getChartConfig('7-day');
-  //         const config14Day = getChartConfig('14-day');
-          
-  //         console.log('7-day config:', config7Day);
-  //         console.log('14-day config:', config14Day);
-          
-  //         // Validate we have data
-  //         if (config7Day.data.labels.length === 0 || config14Day.data.labels.length === 0) {
-  //             console.warn('Empty chart data - no points matched forecast periods');
-  //             return;
-  //         }
+  let cancelled = false;
 
-  //         chart7Day?.destroy();
-  //         chart14Day?.destroy();
-          
-  //         chart7Day = new Chart(canvas7Day, config7Day);
-  //         chart14Day = new Chart(canvas14Day, config14Day);
-  //         console.log('Charts created successfully');
-          
-  //     } catch (error) {
-  //         console.error('Chart initialization error:', error);
-  //     }
-  // });
+  (async () => {
+    try {
+      forecastError = '';
+      const data = await getPrecipjson(stream.usgs_id, selectedDate);
+      if (!cancelled) {
+        forecastJson = data;
+        // Extract the array of forecast sources
+        forecastSources = Array.isArray(data) ? data : data.data || [];
+      }
+    } catch (err) {
+      if (!cancelled) {
+        forecastError = 'Failed to load precipitation forecast data';
+        forecastJson = null;
+        forecastSources = [];
+      }
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+  };
+});
+
+function getForecastTypeLabel(forecastType: string): string {
+  const typeMap: Record<string, string> = {
+    'wpc': 'WPC',
+    'p10': 'ECMWF P10',
+    'p90': 'ECMWF P90',
+    'mean': 'ECMWF Mean',
+    'control': 'ECMWF Control'
+  };
+  return typeMap[forecastType] || forecastType.toUpperCase();
+}
+
+let forecastByType = $derived.by(() => {
+  if (!forecastSources.length) return {};
+  
+  const grouped = {};
+  forecastSources.forEach(item => {
+    if (!grouped[item.forecast_type]) {
+      grouped[item.forecast_type] = {};
+    }
+    grouped[item.forecast_type][item.period] = item;
+  });
+  
+  return grouped;
+});
 </script>
 
 {#if stream}
@@ -357,15 +377,58 @@ $effect(() => {
 
   <div class="dashboard-container">
     <!-- Left Side: Table -->
-    <div class="table-panel">
+    <!-- <div class="table-panel">
       <h2>Precipitation Forecast</h2> 
         <img
           src="/images/table_placeholder.png"
           alt="Placeholder comparison table"
           class="table-placeholder"
         />
-      </div>
+      </div> -->
+      <div class="table-container">
+        {#if forecastJson}
+          <h2>Precipitation Forecast</h2>
+          <p>Forecast Date: {selectedDate}</p>
 
+          {#if forecastSources.length > 0}
+            <table>
+              <thead>
+                <tr>
+                  <th>Forecast Source</th>
+                  <th>7-day Precipitation</th>
+                  <th>14-day Precipitation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each Object.entries(forecastByType) as [forecastType, periods]}
+                  <tr class:highlighted={forecastType === selectedPrecipOption}>
+                    <td>{getForecastTypeLabel(forecastType)}</td>
+                    <td>
+                      {#if periods['7-day']}
+                        {periods['7-day'].precip_mm.toFixed(2)} mm / {periods['7-day'].precip_inches.toFixed(2)} in
+                      {:else}
+                        N/A
+                      {/if}
+                    </td>
+                    <td>
+                      {#if periods['14-day']}
+                        {periods['14-day'].precip_mm.toFixed(2)} mm / {periods['14-day'].precip_inches.toFixed(2)} in
+                      {:else}
+                        N/A
+                      {/if}
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          {:else}
+            <p>No forecast data available</p>
+          {/if}
+        {:else}
+          <p>Loading forecast data...</p>
+        {/if}
+      </div> <!-- Close table-container -->
+    
     <!-- Right Side: Pie Charts -->
     <div class="charts-section">
       <h2>Streamflow Probability</h2>
@@ -578,10 +641,10 @@ $effect(() => {
     padding: 0 20px;  /* Add horizontal padding instead */
   }
 
-  .table-panel {
+  /* .table-panel {
     flex: 1;
     min-width: 300px;
-  }
+  } */
   .charts-section {
     flex: 1;
     min-width: 300px;
@@ -602,14 +665,14 @@ $effect(() => {
     font-size: 14px;
   }
 
-  .table-placeholder {
+  /* .table-placeholder {
     display: block;
     width: min(100%, 700px);
     height: auto;
     border: 1px solid #d9d9d9;
     border-radius: 8px;
     background: white;
-  }
+  } */
   .controls-panel {
     display: flex;
     flex-wrap: wrap;
@@ -635,7 +698,14 @@ $effect(() => {
   border-radius: 4px;
 }
 
+.table-container table tbody tr.highlighted {
+  background-color: #fff3cd;
+  font-weight: 500;
+}
 
+.table-container table tbody tr.highlighted:hover {
+  background-color: #ffe69c;
+}
 /* 
 .forecast-figure {
   display: flex;
