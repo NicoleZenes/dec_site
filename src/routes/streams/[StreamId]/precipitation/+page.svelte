@@ -411,7 +411,7 @@ let forecastByType = $derived.by(() => {
       <div class="table-container">
         {#if forecastJson}
           <h2>Precipitation Forecast</h2>
-          <p>Forecast Date: {selectedDate}</p>
+          <p>Forecast Issue Date: {selectedDate}</p>
 
           {#if forecastSources.length > 0}
             <table>
@@ -429,14 +429,15 @@ let forecastByType = $derived.by(() => {
                   <td>{row.label}</td>
                   <td>
                     {#if row['7-day']}
-                      {row['7-day'].precip_mm.toFixed(2)} mm / {row['7-day'].precip_inches.toFixed(2)} in
+                      <!-- {row['7-day'].precip_mm.toFixed(2)} mm / {row['7-day'].precip_inches.toFixed(2)} in -->
+                       {row['7-day'].precip_inches.toFixed(2)} in
                     {:else}
                       N/A
                     {/if}
                   </td>
                   <td>
                     {#if row['14-day']}
-                      {row['14-day'].precip_mm.toFixed(2)} mm / {row['14-day'].precip_inches.toFixed(2)} in
+                      <!-- {row['14-day'].precip_mm.toFixed(2)} mm / --> {row['14-day'].precip_inches.toFixed(2)} in
                     {:else}
                       N/A
                     {/if}
@@ -729,6 +730,28 @@ let forecastByType = $derived.by(() => {
 
 .table-container table tbody tr.highlighted:hover {
   background-color: #ffe69c;
+}
+
+.table-container table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table-container table th,
+.table-container table td {
+  border-right: 1px solid #ccc;
+  padding: 10px 15px;
+  text-align: left;
+}
+
+.table-container table th:last-child,
+.table-container table td:last-child {
+  border-right: none;
+}
+
+.table-container table thead {
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #999;
 }
 /* 
 .forecast-figure {
