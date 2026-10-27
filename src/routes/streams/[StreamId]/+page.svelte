@@ -209,6 +209,8 @@
             <img src={forecastImagePath} alt="Forecast for {stream.name}" class="forecast-image" />
             <img src="/images/legends/combo_streamflow_percent_with_description.png" alt="Forecast legend" class="legend-image" />
         </div> -->
+        <div class="forecast-container" class:side-legend={imageVariant === 'simplified'}>
+
         <div class="forecast-image-wrap">
             <img
                 src={forecastImagePath}
@@ -270,20 +272,11 @@
                 </div>
                 {/if}
             </div>
-
         <div class="forecast-legend">
-            <!-- <img
-                src={forecastImagePath}
-                alt="Forecast for {stream.name}"
-                class="forecast-image"
-                onerror={handleImageError}
-            /> -->
-            <img
-                src={legendImagePath}
-                alt="Forecast legend"
-                class="legend-image"
-            />
+                <img src={legendImagePath} alt="Forecast legend" class="legend-image" />
+            </div>
         </div>
+
 
         <a href="/" class="back-button">← Back to Map</a>
     </div>
@@ -337,7 +330,7 @@
     }
 
     .legend-image {
-        width: min(98vw, 1800px);
+        width:100%;
         height: auto;
         display: block;
         margin: 0 auto;
@@ -435,4 +428,25 @@
     .tooltip-content {
     white-space: normal;
     }
+
+    .forecast-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: 0 auto;
+}
+
+.forecast-container.side-legend {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.forecast-container.side-legend .forecast-image-wrap {
+    flex: 1;
+}
+
+.forecast-container.side-legend .forecast-legend {
+    flex: 0 0 auto;
+    width: 250px;  /* adjust width as needed */
+}
 </style>
