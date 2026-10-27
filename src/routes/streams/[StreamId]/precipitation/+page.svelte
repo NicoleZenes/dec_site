@@ -248,11 +248,27 @@
               }
             }
             },
-            title: { display: true, text: `${forecastPeriod} Forecast`, font: { size: 16 } }
-          },
-          tooltip: {
-            bodyFont: {
-              size: 14
+            title: { display: true, text: `${forecastPeriod} Forecast`, font: { size: 16 } },
+            tooltip: { // Needs to be inside the plugins object
+              bodyFont: {
+                size: 14
+              },
+              callbacks: {
+                title: () => '',
+                label: function(context) {
+                  console.log('afterLabel context:', context);
+                  const value = context.raw || context.parsed;
+                  const label = context.label.toLowerCase();
+                  const period = forecastPeriod === '7-day' ? '7 days' : '14 days';
+                  // return `According to the NRCC model, there is a ${value.toFixed(1)}% chance streamflow will ${label} in ${period}.`;
+                  // Return an array to create line breaks
+                  return [
+                    'According to the NRCC model,',
+                    `there is a ${value.toFixed(1)}% chance streamflow`,
+                    `will ${label} in ${period}.`
+                  ];
+                }
+              }
             }
           }
         }
